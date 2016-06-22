@@ -1,0 +1,14 @@
+{
+  "name": "ASP.NET",
+  "private": true,
+  "dependencies": {
+    "underscore": "",
+    "jquery": "",
+    "jquery-validation": "",
+    "jquery-validation-unobtrusive": "",
+    "bootstrap": "",
+    "angular": "",
+    "angular-resource": "",
+    "angular-route":  "" 
+  }
+}

@@ -1,0 +1,49 @@
+﻿@model PortfolioViewModel
+
+@{
+    ViewData["Title"] = "Portfolio";
+}
+@section Scripts {
+    <environment names="Development">
+        @*<script src="~/js/controllers/portfolioController.js"></script>*@
+    </environment>
+}
+
+<div ng-controller="portfolioController">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>{{portfolio.customerName}}</h1>
+        </div>
+    </div>
+    <div class="row">
+        <div class="table-responsive col-md-8">
+            <table class="table table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th ng-click="sortByColumn ='symbol'; reverse = false;">Symbol</th>
+                        <th ng-click="sortByColumn ='type'; reverse = false;">Type</th>
+                        <th ng-click="sortByColumn ='price'; reverse = false;">Paid Price</th>
+                        <th ng-click="sortByColumn ='marketValue'; reverse = false;">Market Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="security in portfolio.customerSecurities | orderBy: sortByColumn">
+                        <td>{{security.symbol}}</td>
+                        <td>{{security.type}}</td>
+                        <td>{{security.price | currency}}</td>
+                        <td>{{security.marketValue | currency}}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td></td>
+                        <td><strong>Total</strong></td>
+                        <td>{{portfolio.totalPaidPrice | currency}}</td>
+                        <td>{{portfolio.portfolioValue | currency}}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+    </div>
+</div>

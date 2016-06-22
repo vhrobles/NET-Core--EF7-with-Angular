@@ -1,0 +1,24 @@
+﻿@using System.Security.Claims
+
+@if (User.IsSignedIn())   
+{
+    <ul class="nav navbar-nav">
+        @if (User.Identity.Name.Contains("admin"))
+        {
+            <li><a asp-controller="Account" asp-action="Register">Register Customer</a></li>
+            <li><a asp-controller="Account" asp-action="Register">Portfolios</a></li>
+            <li><a asp-controller="Account" asp-action="Register">Securities</a></li>
+        }
+        else
+        {
+            <li><a asp-controller="Portfolio" asp-action="Index">Portfolio</a></li>
+        }
+    </ul>
+}
+else
+{
+    <ul class="nav navbar-nav">   
+        <li><a asp-controller="App" asp-action="Index">Home</a></li>
+        <li><a asp-controller="App" asp-action="About">About</a></li>
+    </ul>
+}
