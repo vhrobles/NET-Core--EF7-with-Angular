@@ -9,7 +9,11 @@ using Microsoft.Extensions.Logging;
 
 namespace GuidantFinancial.Services
 {
-    public class PortfolioRepository : IPortfolioRepository, IDisposable
+    //TODO: Implement Generic Repo, Unit Test
+    /// <summary>
+    /// Portfolio Repo for DB operations
+    /// </summary>
+    public class PortfolioRepository : IPortfolioRepository
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<AccountRepository> _logger;
@@ -40,6 +44,8 @@ namespace GuidantFinancial.Services
                 securities = await CalculateMarketValueAsync(securities);
                 var portfolio = new CustomerPortfolio()
                 {
+                    CustomerId = customerId,
+                    PortfolioId = _context.Customers.Where(x => x.Id == customerId).Select(x => x.Portfolio.Id).FirstOrDefault(),
                     CustomerName = _context.Customers.FirstOrDefault(c => c.Id == customerId)?.Name,
                     CustomerSecurities = securities,
                     PortfolioValue = securities.Select(x => x.MarketValue).Sum(),
@@ -47,11 +53,226 @@ namespace GuidantFinancial.Services
                 };                
                 return portfolio;
             }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError("Couldn't update record, concurrency violation ocurred", ex);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError("Couldn't update record", ex);
+            }
+            catch (NotSupportedException ex)
+            {
+                _logger.LogError("Validation error occurred", ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError("Error while processing entities in database", ex);
+            }
             catch (Exception ex)
             {
-                _logger.LogError("Database operation error", ex);
-                return null;
+                _logger.LogError("Generic exception", ex);
             }
+            finally
+            {
+                _context.Dispose();
+            }
+            return null;
+        }
+
+        public async Task<bool> AddCustomerSecurityAsync(NewCustomerSecurity customerSecurity)
+        {
+            try
+            {
+                var portfolio = await
+                    _context.Portfolios.Where(x => x.Id == customerSecurity.PortfolioId).FirstOrDefaultAsync();
+
+                var security = new Security()
+                {
+                    Type = _context.SecurityTypes.SingleOrDefault(x => x.Type == customerSecurity.Type),
+                    Price = customerSecurity.Price,
+                    Symbol = customerSecurity.Symbol
+                };
+
+                var customer =
+                    await _context.Customers.Where(x => x.Id == customerSecurity.CustomerId).SingleOrDefaultAsync();
+
+                ICollection<Security> securities = await _context.Securities.Where(x => x.Portfolio.Id == customerSecurity.PortfolioId).ToListAsync();
+                
+                if (!securities.Any())
+                {
+                    portfolio = new Portfolio()
+                    {                        
+                        Securities = new List<Security>()
+                        {
+                            security
+                        }
+                    };                    
+                }
+                else
+                {
+                    portfolio.Securities.Add(security);
+                }
+
+                //If portfolio exists just update it, if not add a new one to customer with securities in it.
+                if (portfolio.Id <= 0)
+                {
+                    _context.Entry(portfolio).State = EntityState.Modified;
+                }
+                else
+                {                    
+                    customer.Portfolio = portfolio;
+                    _context.Entry(customer).State = EntityState.Modified;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return true;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError("Couldn't update record, concurrency violation ocurred", ex);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError("Couldn't update record", ex);
+            }
+            catch (NotSupportedException ex)
+            {
+                _logger.LogError("Validation error occurred", ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError("Error while processing entities in database", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Generic exception", ex);
+            }
+            finally
+            {
+                _context.Dispose();
+            }
+
+            return false;
+        }
+
+        public async Task<ICollection<SecurityType>> GetAllSecurityTypesAsync()
+        {
+            try
+            {
+                var securityTypes = await _context.SecurityTypes.ToListAsync();
+                return securityTypes;
+            }            
+            catch (Exception ex)
+            {
+                _logger.LogError("Generic exception", ex);
+            }
+            finally
+            {
+                _context.Dispose();
+            }
+            return null;
+        }
+
+        public async Task<bool> UpdateSecurityType(int id, string calculation)
+        {
+            try
+            {
+                var securityType = await _context.SecurityTypes.Where(x => (int)x.Type == id).SingleOrDefaultAsync();
+                securityType.Calculation = calculation;
+                _context.Entry(securityType).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError("Couldn't update record, concurrency violation ocurred", ex);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError("Couldn't update record", ex);
+            }
+            catch (NotSupportedException ex)
+            {
+                _logger.LogError("Validation error occurred", ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError("Error while processing entities in database", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Generic exception", ex);
+            }
+            finally
+            {
+                _context.Dispose();
+            }
+
+            return false;
+        }
+
+        public async Task<ICollection<CustomerPortfolio>> GetAllCustomerPortfoliosAsync()
+        {
+            try
+            {
+                //Outer left join all the customers regardless if they have a portfolio or not.
+                var emptyPortfolios = await (from c in _context.Customers
+                                             where !c.Name.Contains("admin") && c.Portfolio.Id == null
+                                             select new CustomerPortfolio()
+                                             {
+                                                 CustomerId = c.Id,
+                                                 CustomerName = c.Name,
+                                                 PortfolioId = c.Portfolio.Id
+                                             }).ToListAsync();
+
+                var portfolios = await (from cx in _context.Customers
+                                        where cx.Portfolio.Id != null
+                                        select new CustomerPortfolio()
+                                        {
+                                            CustomerId = cx.Id,
+                                            CustomerName = cx.Name,
+                                            PortfolioId = cx.Portfolio.Id,
+                                            CustomerSecurities = (from c in _context.Customers
+                                                                  join p in _context.Portfolios on c.Portfolio.Id equals p.Id
+                                                                  join s in _context.Securities on p.Id equals s.Portfolio.Id
+                                                                  join st in _context.SecurityTypes on s.Type.Id equals st.Id
+                                                                  where c.Id == cx.Id
+                                                                  select new CustomerSecurities()
+                                                                  {
+                                                                      Symbol = s.Symbol,
+                                                                      Price = s.Price,
+                                                                      Type = st.Type
+                                                                  }
+                                                                  ).ToList()                                            
+                                        }).ToListAsync();
+
+                foreach (var portfolio in portfolios)
+                {
+                    portfolio.CustomerSecurities =
+                        await CalculateMarketValueAsync(portfolio.CustomerSecurities).ConfigureAwait(false);
+                    portfolio.PortfolioValue = portfolio.CustomerSecurities.Select(s => s.MarketValue).Sum();
+                    portfolio.TotalPaidPrice = portfolio.CustomerSecurities.Select(s => s.Price).Sum();
+                }
+
+                portfolios.AddRange(emptyPortfolios);
+
+                return portfolios;
+            }            
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError("Error while processing entities in database", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Generic exception", ex);
+            }
+            finally
+            {
+                _context.Dispose();
+            }
+            return null;
         }
 
         private async Task<IList<CustomerSecurities>> CalculateMarketValueAsync(IList<CustomerSecurities> securities)
@@ -102,25 +323,8 @@ namespace GuidantFinancial.Services
             decimal result;
             decimal.TryParse(exp.Eval().ToString(), out result);
             return result;
-        }
-
-        private bool _disposed;
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _context.Dispose();
-                }
-            }
-            _disposed = true;
-        }
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+        }        
 
     }
 }
+

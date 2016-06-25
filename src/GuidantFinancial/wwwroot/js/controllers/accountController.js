@@ -19,7 +19,7 @@
         return factory;
     };
 
-    var accountController = function ($scope, $http, $resource, $location, accountFactory) {
+    var accountController = function ($scope, $http, $resource, $location, accountFactory, ModalService) {
 
         $scope.submitForm = function () {
             
@@ -40,7 +40,22 @@
             $scope.success = false;
             accountFactory.registerCustomer(customer).then(function (response) {
                     $scope.success = true;
-                    $scope.response = response;                    
+                    $scope.response = response;
+                   
+
+                    ModalService.showModal({
+                        templateUrl: "modal.html",
+                        controller: "modalController",
+                        scope: $scope
+                    }).then(function(modal) {
+                        modal.element.body = 'aaaaaaa';
+                        //it's a bootstrap element, use 'modal' to show it
+                        modal.element.modal();
+                        modal.close.then(function(result) {
+                            console.log(result);
+                        });
+                    });
+
 
                 },
                 function (error) {

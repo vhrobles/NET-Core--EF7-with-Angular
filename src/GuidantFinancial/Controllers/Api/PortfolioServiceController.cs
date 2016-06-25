@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using GuidantFinancial.Entities;
 using GuidantFinancial.Services;
 using Microsoft.AspNet.Authorization;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Mvc;
+using Newtonsoft.Json;
 
 
 namespace GuidantFinancial.Controllers.Api
@@ -27,6 +29,31 @@ namespace GuidantFinancial.Controllers.Api
             _portfolio = portfolio;
             _account = account;
         }
+                
+        [HttpGet]        
+        [Route("GetAll")]
+        public async Task<JsonResult> GetAll()
+        {
+            var portfolios = await _portfolio.GetAllCustomerPortfoliosAsync();
+            return Json(portfolios);
+        }
+
+        
+        [HttpGet]
+        [Route("GetAllSecurityTypes")]
+        public async Task<JsonResult> GetAllSecurityTypes()
+        {
+            var securityTypes = await _portfolio.GetAllSecurityTypesAsync();
+            return Json(securityTypes);
+        }
+
+        [HttpPut]
+        [Route("UpdateSecurityType")]        
+        public async Task<JsonResult> UpdateSecurityType(int id, string calculation)
+        {
+            var result = await _portfolio.UpdateSecurityType(id, calculation);
+            return Json(result);
+        }
         // GET: api/values
         [HttpGet]
         public async Task<JsonResult> Get()
@@ -35,21 +62,26 @@ namespace GuidantFinancial.Controllers.Api
             var customerData = await _account.GetCustomerByEmailAsync(userName);
             var customerPortfolio = await _portfolio.GetCustomerPortfolioAsync(customerData.Id);
             return Json(customerPortfolio);
-        }
-        
+        }                
+
         // GET api/values/5
-        [HttpGet("{id}")]
-        public JsonResult Get(int id)
+        [HttpGet("{id}")]        
+        public async Task<JsonResult> Get(int id)
         {
-            ;
-            return Json(new JsonResult(new {}));
+
+            var customerPortfolio = await _portfolio.GetCustomerPortfolioAsync(id);
+            return Json(customerPortfolio);
         }
 
         // POST api/values
         [HttpPost]
-        public void Post([FromBody]string value)
-        {
+        [AllowAnonymous]
+        public async Task<JsonResult> Post([FromBody]NewCustomerSecurity customerSecurity)
+        {                 
+            var result = await _portfolio.AddCustomerSecurityAsync(customerSecurity);
+            return Json(result);
         }
+                
 
         // PUT api/values/5
         [HttpPut("{id}")]

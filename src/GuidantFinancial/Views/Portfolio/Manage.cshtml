@@ -2,101 +2,31 @@
     <p ng-show="loading == true">
         Loading..
     </p>
-    @*<div class="row">
-        <div class="col-md-12">
-            <h1>{{portfolio.customerName}}</h1>
-        </div>
-    </div>*@
     <div class="row">
-        <div class="table-responsive col-md-8">
-
-            <table class="table table-hover table-striped">
-                <thead>
-                    <tr>
-                        <th>
-                            <p ng-click="sortByColumn ='symbol'; reverse = false;">
-                                Symbol
-                            </p>
-                            <p>
-                                <input class="form-control" type="text" ng-model="f.symbol" />
-                            </p>
-                        </th>
-                        <th>
-                            <p ng-click="sortByColumn ='type'; reverse = false;">
-                                Type
-                            </p>
-                            <p>
-                                <select class="form-control" ng-model="f.type">
-                                    <option value="1">Funds</option>
-                                    <option value="2">Stocks</option>
-                                    <option value="3">Bonds</option>
-                                </select>
-                            </p>
-                        </th>
-                        <th>
-                            <p ng-click="sortByColumn ='price'; reverse = false;">
-                                Paid Price
-                            </p>
-                            <p>
-                                <input class="form-control" type="text" ng-model="f.price" />
-                            </p>
-                        </th>
-                        <th>
-                            <p ng-click="sortByColumn ='marketValue'; reverse = false;">
-                                Market Value
-                            </p>
-                            <p>
-                                <input class="form-control" type="text" ng-model="f.marketValue" />
-                            </p>
-                        </th>
-                    </tr>
-                </thead>
-                <tfoot>
-                    <tr>
-                        <td colspan="4">
-                            <div>
-                                <nav>
-                                    <ul class="pagination">
-                                        <li ng-class="{disabled: pagination.page == 0}">
-
-                                            <a href ng-click="pagination.prevPage()">«</a>
-                                        </li>
-
-                                        <li ng-repeat="n in [] | range: pagination.numPages" ng-class="{active: n == pagination.page}"
-                                            ng-class="{active: n == pagination.page}"
-                                            ng-click="pagination.toPageId(n)">
-                                            <a href>{{n + 1}}</a>
-                                        </li>
-
-                                        <li ng-class="{disabled: pagination.page + 1 >= pagination.numPages}">
-                                            <a href ng-click="pagination.nextPage()">»</a>
-                                        </li>
-                                    </ul>
-                                </nav>
-                            </div>
-                        </td>
-                    </tr>
-                </tfoot>
-                <tbody>
-
-                    <tr ng-repeat="security in portfolio.customerSecurities | startFrom: pagination.page * pagination.perPage | limitTo: pagination.perPage | orderBy: sortByColumn | filter: f ">
-
-                        <td>{{security.symbol}}</td>
-                        <td>{{security.type | portfolioType}}</td>
-                        <td>{{security.price | currency}}</td>
-                        <td>{{security.marketValue | currency}}</td>
-                    </tr>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td></td>
-                        <td><strong>Total</strong></td>
-                        <td>{{portfolio.totalPaidPrice | currency}}</td>
-                        <td>{{portfolio.portfolioValue | currency}}</td>
-                    </tr>
-                </tfoot>
-            </table>
+        <div class="col-md-12">
+            <h1>Manage Portfolios</h1>
         </div>
-
     </div>
+    <div class="row">
+        <table ng-table="customerTable" class="table table-striped table-bordered table-hover" show-filter="true">
+            <tr ng-repeat="row in $data" >
+
+                <td title="'Customer Name'" filter="{ 'customerName': 'text'}" sortable="'customerName'">
+                   
+                        <input type="hidden" id="portfolioId" name="portfolioId" value="{{row.portfolioId}}" />
+                        <a href="/Portfolio/Details/{{row.customerId}}">{{row.customerName}}</a>
+                   
+                </td>
+                <td title="'Portfolio Value'" filter="{ 'portfolioValue': 'number'}" sortable="'portfolioValue'">
+                    {{row.portfolioValue | currency}}
+                </td>
+                <td title="'Total Paid Price'" filter="{ 'totalPaidPrice': 'number'}" sortable="'totalPaidPrice'">
+                    {{row.totalPaidPrice | currency}}
+                </td>
+            </tr>
+        </table>
+    </div>
+    
+
+    
 </div>

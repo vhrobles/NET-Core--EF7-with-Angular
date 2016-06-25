@@ -1,0 +1,47 @@
+﻿@{
+    ViewData["Title"] = "Portfolio";
+}
+@section Scripts {
+    
+}
+<div id="portfolio" ng-controller="securityTypesController">
+    <p ng-show="loading == true">
+        Loading..
+    </p>
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Security Types</h2>
+        </div>
+    </div>
+    <div class="row">
+        <table ng-table="customerTable" class="table table-striped table-hover table-bordered" show-filter="true">
+            <colgroup>
+                <col width="60%" />
+                <col width="20%" />
+                <col width="20%" />
+            </colgroup>
+            
+            <tr ng-repeat="row in $data" ng-form="rowForm">
+                
+                <td title="'Type'" filter="{ 'type': 'number'}" groupable="'type'" sortable="'type'" >
+                    {{row.type | securityType}}
+                </td>
+                <td title="'Calculation'" filter="{ 'calculation': 'text'}" sortable="'calculation'" ng-switch="row.isEditing" ng-class="name.$dirty ? 'bg-warning' : ''" ng-form="calculation" demo-tracked-table-cell>
+                    <span ng-switch-default class="editable-text">{{row.calculation}}</span>
+                    <div class="controls" ng-class="calculation.$invalid && calculation.$dirty ? 'has-error' : ''" ng-switch-when="true">
+                        <input type="text" name="name" ng-model="row.calculation" class="editable-input form-control input-sm" required/>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-primary btn-sm" ng-click="save(row, rowForm)" ng-if="row.isEditing" ng-disabled="rowForm.$pristine || rowForm.$invalid"><span class="glyphicon glyphicon-ok"></span></button>
+                    <button class="btn btn-default btn-sm" ng-click="cancel(row, rowForm)" ng-if="row.isEditing"><span class="glyphicon glyphicon-remove"></span></button>
+                    <button class="btn btn-default btn-sm" ng-click="row.isEditing = true" ng-if="!row.isEditing"><span class="glyphicon glyphicon-pencil"></span></button>
+                    
+                </td>                
+            </tr>
+            
+
+        </table>
+    </div>
+
+</div>

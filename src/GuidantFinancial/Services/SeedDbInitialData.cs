@@ -91,12 +91,12 @@ namespace GuidantFinancial.Services
                     {
                         new Customer()
                         {
-                            Name = "admin",
+                            Name = "admin@domain.com",
                             Email = "admin@domain.com"
                         },
                         new Customer()
                         {
-                            Name = "test customer",
+                            Name = "test@domain.com",
                             Email = "test@domain.com",
                             Portfolio = portfolio
                         }
@@ -104,10 +104,10 @@ namespace GuidantFinancial.Services
 
             _context.Customers.AddRange(customers);
 
-            await _context.SaveChangesAsync();
+            
             await _userManager.CreateAsync(new ApplicationUser() { UserName = "admin@domain.com", Email = "admin@domain.com" }, "Password1");
             await _userManager.CreateAsync(new ApplicationUser() { UserName = "test@domain.com", Email = "test@domain.com" }, "Password1");
-
+            await _context.SaveChangesAsync();
 
             _context.Dispose();
         }

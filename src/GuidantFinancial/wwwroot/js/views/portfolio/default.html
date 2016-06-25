@@ -1,0 +1,29 @@
+﻿<div id="portfolio" ng-controller="managePortfoliosController">
+    <p ng-show="loading == true">
+        Loading..
+    </p>
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Manage Portfolios</h1>
+        </div>
+    </div>
+    <div class="row">
+        <table ng-table="customerTable" class="table table-striped table-bordered table-hover" show-filter="true">
+            <tr ng-repeat="row in $data">
+
+                <td title="'Customer Name'" filter="{ 'customerName': 'text'}" sortable="'customerName'">
+
+                    <input type="hidden" id="portfolioId" name="portfolioId" value="{{row.portfolioId}}" />
+                    <a href="/Portfolio/Details/{{row.customerId}}">{{row.customerName}}</a>
+
+                </td>
+                <td title="'Portfolio Value'" filter="{ 'portfolioValue': 'number'}" sortable="'portfolioValue'">
+                    {{row.portfolioValue | currency}}
+                </td>
+                <td title="'Total Paid Price'" filter="{ 'totalPaidPrice': 'number'}" sortable="'totalPaidPrice'">
+                    {{row.totalPaidPrice | currency}}
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>

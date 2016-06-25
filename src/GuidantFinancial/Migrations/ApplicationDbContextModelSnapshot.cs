@@ -82,7 +82,7 @@ namespace GuidantFinancial.Migrations
 
             modelBuilder.Entity("GuidantFinancial.Entities.Portfolio", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int?>("Id")
                         .ValueGeneratedOnAdd();
 
                     b.Property<string>("Name");

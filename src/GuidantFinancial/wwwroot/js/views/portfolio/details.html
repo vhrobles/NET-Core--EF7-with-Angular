@@ -1,0 +1,57 @@
+﻿<div id="portfolioDetails" ng-controller="portfolioDetailsController">
+    <p ng-show="loading == true">
+        Loading..
+    </p>
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Portfolio [{{portfolio.customerName}}]</h2>
+        </div>
+    </div>
+    <div class="row">
+        <table ng-table="customerTable" class="table table-striped table-hover table-bordered" show-filter="true">
+            <colgroup>
+                <col width="60%" />
+                <col width="20%" />
+                <col width="20%" />
+            </colgroup>
+            <tr class="ng-table-group" ng-repeat-start="group in $groups">
+                <td colspan="3">
+                    <a href="" ng-click="group.$hideRows = !group.$hideRows">
+                        <span class="glyphicon" ng-class="{ 'glyphicon-chevron-right': group.$hideRows, 'glyphicon-chevron-down': !group.$hideRows }"></span>
+                        <strong>{{ group.value | securityType }}</strong>
+                    </a>
+                </td>
+            </tr>
+            <tr ng-hide="group.$hideRows" ng-repeat="row in group.data" ng-repeat-end>
+                <td title="'Symbol'" filter="{ 'symbol': 'text'}" groupable="'symbol'" sortable="'symbol'">
+                    {{row.symbol}}
+                </td>
+                <td title="'Type'" filter="{ 'type': 'number'}" groupable="'type'" sortable="'type'">
+                    {{row.type | securityType}}
+                </td>
+                <td title="'Paid Price'" filter="{ 'price': 'number'}" sortable="'price'">
+                    {{row.price | currency}}
+                </td>
+                <td title="'Market Value'" filter="{ 'marketValue': 'number'}" sortable="'marketValue'">
+                    {{row.marketValue | currency}}
+                </td>
+
+            </tr>
+            <tfoot>
+                <tr>
+                    <td>
+                        <strong>Total</strong>
+                    </td>
+                    <td>
+                        <strong>{{portfolio.totalPaidPrice | currency}}</strong>
+                    </td>
+                    <td>
+                        <strong>{{portfolio.portfolioValue | currency}}</strong>
+                    </td>
+                </tr>
+            </tfoot>
+
+        </table>
+    </div>
+
+</div>

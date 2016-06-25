@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using GuidantFinancial.Services;
+using GuidantFinancial.ViewModels.Account;
 using GuidantFinancial.ViewModels.Portfolio;
 using Microsoft.AspNet.Authorization;
 using Microsoft.AspNet.Mvc;
@@ -14,6 +15,22 @@ namespace GuidantFinancial.Controllers.Web
     {        
         public IActionResult Index()
         {            
+            return View();
+        }
+
+        public IActionResult Manage()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult Details()
+        {
+            return View();
+        }
+
+        public IActionResult Securities()
+        {
             return View();
         }
     }

@@ -1,21 +1,29 @@
 ﻿using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
 using GuidantFinancial.Entities;
 using GuidantFinancial.Services;
+using GuidantFinancial.ViewModels.Account;
 using Microsoft.AspNet.Authorization;
+using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Mvc;
 
 namespace GuidantFinancial.Controllers.Api
 {    
+    [Authorize]
     [Route("api/[controller]")]
     public class AccountServiceController : Controller
     {
         private readonly IAccountRepository _accountRepository;
+        private readonly UserManager<ApplicationUser> _userManager;
 
         public AccountServiceController(
-            IAccountRepository accountRepository
+            IAccountRepository accountRepository,
+            UserManager<ApplicationUser> userManager
             )
         {
             _accountRepository = accountRepository;
+            _userManager = userManager;
         }
         // GET: api/values
         [HttpGet]
@@ -33,9 +41,20 @@ namespace GuidantFinancial.Controllers.Api
 
         // POST api/values
         [HttpPost]
-        public void Post([FromBody]Customer customer)
-        {
-            //_accountRepository.AddCustomer(customer);
+        public async Task<JsonResult> Post([FromBody]NewCustomer customer)
+        {            
+            var existingCustomer = await _accountRepository.GetCustomerByEmailAsync(customer.Email);            
+            if (existingCustomer != null)
+            {
+                return Json("The customer " + customer.Email + " is already registered.");
+            }
+            var newCustomer = new Customer()
+            {
+                Name = customer.Email,
+                Email = customer.Email                
+            };
+            await _accountRepository.AddCustomerAsync(newCustomer, customer.Password);
+            return Json("Customer " + customer.Email + " added successfully!");
         }
 
         // PUT api/values/5

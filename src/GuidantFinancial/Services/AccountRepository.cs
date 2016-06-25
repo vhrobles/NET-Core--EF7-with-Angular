@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GuidantFinancial.Entities;
+using Microsoft.AspNet.Identity;
 using Microsoft.Data.Entity;
 using Microsoft.Extensions.Logging;
 
@@ -12,21 +13,27 @@ namespace GuidantFinancial.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<AccountRepository> _logger;
+        private readonly UserManager<ApplicationUser> _userManager;
 
         public AccountRepository(
             ApplicationDbContext context, 
-            ILogger<AccountRepository> logger)
+            ILogger<AccountRepository> logger,
+            UserManager<ApplicationUser> userManager
+            )
         {
             _context = context;
             _logger = logger;
-        }        
+            _userManager = userManager;
+        }
 
-        public async Task AddCustomerAsync(Customer customer)
+        
+        public async Task AddCustomerAsync(Customer customer, string password)
         {
             try
-            {
+            {                
                 _context.Customers.Add(customer);
-                await _context.SaveChangesAsync();
+                await _userManager.CreateAsync(new ApplicationUser() { UserName = customer.Name, Email = customer.Email }, password);
+                await _context.SaveChangesAsync();                
             }
             catch (Exception ex)
             {
@@ -88,5 +95,7 @@ namespace GuidantFinancial.Services
                 return null;
             }
         }
+
+        
     }
 }

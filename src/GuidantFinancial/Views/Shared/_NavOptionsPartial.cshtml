@@ -6,8 +6,8 @@
         @if (User.Identity.Name.Contains("admin"))
         {
             <li><a asp-controller="Account" asp-action="Register">Register Customer</a></li>
-            <li><a asp-controller="Account" asp-action="Register">Portfolios</a></li>
-            <li><a asp-controller="Account" asp-action="Register">Securities</a></li>
+            <li><a asp-controller="Portfolio" asp-action="Manage">Portfolios</a></li>
+            <li><a asp-controller="Portfolio" asp-action="Securities">Security Types</a></li>
         }
         else
         {
