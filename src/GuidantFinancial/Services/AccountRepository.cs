@@ -16,7 +16,7 @@ namespace GuidantFinancial.Services
         private readonly UserManager<ApplicationUser> _userManager;
 
         public AccountRepository(
-            ApplicationDbContext context, 
+            ApplicationDbContext context,
             ILogger<AccountRepository> logger,
             UserManager<ApplicationUser> userManager
             )
@@ -26,19 +26,51 @@ namespace GuidantFinancial.Services
             _userManager = userManager;
         }
 
-        
-        public async Task AddCustomerAsync(Customer customer, string password)
+
+        public async Task<bool> AddCustomerAsync(Customer customer, string password)
         {
-            try
-            {                
-                _context.Customers.Add(customer);
-                await _userManager.CreateAsync(new ApplicationUser() { UserName = customer.Name, Email = customer.Email }, password);
-                await _context.SaveChangesAsync();                
-            }
-            catch (Exception ex)
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                _logger.LogError("Database operation error", ex);
+                try
+                {
+                    _context.Customers.Add(customer);
+                    await
+                        _userManager.CreateAsync(
+                            new ApplicationUser() { UserName = customer.Name, Email = customer.Email }, password);
+                    await _context.SaveChangesAsync();
+                    transaction.Commit();
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError("Couldn't update record, concurrency violation ocurred", ex);
+                }
+                catch (DbUpdateException ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError("Couldn't update record", ex);
+                }
+                catch (NotSupportedException ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError("Validation error occurred", ex);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError("Error while processing entities in database", ex);
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError("Generic exception", ex);
+                }
             }
+
+
+            return false;
         }
 
         public async Task<Customer> GetCustomerByName(string name)
@@ -53,19 +85,28 @@ namespace GuidantFinancial.Services
                 _logger.LogError("Database operation error", ex);
                 return null;
             }
+            finally
+            {
+                _context.Dispose();
+            }
         }
 
         public async Task<ICollection<Customer>> GetAllCustomers()
         {
             try
             {
-                var customers = await _context.Customers.Where(x => x.Name != "admin").OrderBy(x => x.Name).ToListAsync();
+                var customers =
+                    await _context.Customers.Where(x => x.Name != "admin").OrderBy(x => x.Name).ToListAsync();
                 return customers;
             }
             catch (Exception ex)
             {
                 _logger.LogError("Database operation error", ex);
                 return null;
+            }
+            finally
+            {
+                _context.Dispose();
             }
         }
         public async Task<Customer> GetCustomer(int id)
@@ -79,6 +120,10 @@ namespace GuidantFinancial.Services
             {
                 _logger.LogError("Database operation error ", ex);
                 return null;
+            }
+            finally
+            {
+                _context.Dispose();
             }
         }
 
@@ -94,8 +139,9 @@ namespace GuidantFinancial.Services
                 _logger.LogError("Database operation error ", ex);
                 return null;
             }
+
         }
 
-        
+
     }
 }

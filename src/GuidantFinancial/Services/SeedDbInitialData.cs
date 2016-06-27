@@ -6,6 +6,7 @@ using System.Transactions;
 using GuidantFinancial.Entities;
 using Microsoft.AspNet.Identity;
 using Microsoft.Data.Entity;
+using Microsoft.Extensions.Logging;
 
 namespace GuidantFinancial.Services
 {
@@ -13,13 +14,16 @@ namespace GuidantFinancial.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ILogger<AccountRepository> _logger;
 
         public SeedDbInitialData(
             ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+             ILogger<AccountRepository> logger)
         {
             _context = context;
             _userManager = userManager;
+            _logger = logger;
         }
 
         public async Task EnsureSeedData()
@@ -27,29 +31,33 @@ namespace GuidantFinancial.Services
 
 
             if (_context.Customers.Any()) return;
-            //Seed Database, add admin and test user by default
-            var securityTypes = new List<SecurityType>()
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                new SecurityType()
+                try
                 {
-                    Type = SecurityTypes.Stocks,
-                    Calculation = "{0} / {1}" //Price / total shares
-                },
-                new SecurityType()
-                {
-                    Type = SecurityTypes.Bonds,
-                    Calculation = "{0} * {1}" //Price * total shares
-                },
-                new SecurityType()
-                {
-                    Type = SecurityTypes.Funds,
-                    Calculation = "{0} * {1} / 2" //Price * total shares / 2
-                }
-            };
+                    //Seed Database, add admin and test user by default
+                    var securityTypes = new List<SecurityType>()
+                    {
+                        new SecurityType()
+                        {
+                            Type = SecurityTypes.Stocks,
+                            Calculation = "{0} / {1}" //Price / total shares
+                        },
+                        new SecurityType()
+                        {
+                            Type = SecurityTypes.Bonds,
+                            Calculation = "{0} * {1}" //Price * total shares
+                        },
+                        new SecurityType()
+                        {
+                            Type = SecurityTypes.Funds,
+                            Calculation = "{0} * {1} / 2" //Price * total shares / 2
+                        }
+                    };
 
-            _context.SecurityTypes.AddRange(securityTypes);
+                    _context.SecurityTypes.AddRange(securityTypes);
 
-            var securities = new List<Security>()
+                    var securities = new List<Security>()
                     {
                         new Security()
                         {
@@ -77,17 +85,17 @@ namespace GuidantFinancial.Services
                         }
                     };
 
-            _context.Securities.AddRange(securities);
+                    _context.Securities.AddRange(securities);
 
-            var portfolio = new Portfolio()
-            {
-                Name = "test",
-                Securities = securities
-            };
+                    var portfolio = new Portfolio()
+                    {
+                        Name = "test",
+                        Securities = securities
+                    };
 
-            _context.Portfolios.Add(portfolio);
+                    _context.Portfolios.Add(portfolio);
 
-            var customers = new List<Customer>()
+                    var customers = new List<Customer>()
                     {
                         new Customer()
                         {
@@ -102,14 +110,30 @@ namespace GuidantFinancial.Services
                         }
                     };
 
-            _context.Customers.AddRange(customers);
+                    _context.Customers.AddRange(customers);
 
+
+                    await
+                        _userManager.CreateAsync(
+                            new ApplicationUser() {UserName = "admin@domain.com", Email = "admin@domain.com"},
+                            "Password1");
+                    await
+                        _userManager.CreateAsync(
+                            new ApplicationUser() {UserName = "test@domain.com", Email = "test@domain.com"}, "Password1");
+                    await _context.SaveChangesAsync();
+                    transaction.Commit();
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError("Error while seeding the database", ex);
+                }
+                finally
+                {
+                    _context.Dispose();
+                }
+            }
             
-            await _userManager.CreateAsync(new ApplicationUser() { UserName = "admin@domain.com", Email = "admin@domain.com" }, "Password1");
-            await _userManager.CreateAsync(new ApplicationUser() { UserName = "test@domain.com", Email = "test@domain.com" }, "Password1");
-            await _context.SaveChangesAsync();
-
-            _context.Dispose();
         }
 
 

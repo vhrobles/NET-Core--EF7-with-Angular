@@ -136,7 +136,7 @@
                        {
                            dataset: $scope.portfolio.customerSecurities
                        });
-                                                
+                        $('#addSecurityForm')[0].reset();
                     },
                     function (error) {
 

@@ -40,8 +40,10 @@
             $scope.success = false;
             accountFactory.registerCustomer(customer).then(function (response) {
                     $scope.success = true;
-                    $scope.response = response;
-                   
+                    $scope.response = response.data ? 'Added successfully!' : 'Couldn\'t add user, she may already exists or an error ocurred';
+
+                    if ($scope.response)
+                        $('#registerForm')[0].reset();
 
                     ModalService.showModal({
                         templateUrl: "modal.html",

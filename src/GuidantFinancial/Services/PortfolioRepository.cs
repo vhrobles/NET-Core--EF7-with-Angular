@@ -28,132 +28,136 @@ namespace GuidantFinancial.Services
         }
         public async Task<CustomerPortfolio> GetCustomerPortfolioAsync(int customerId)
         {
-            try
-            {
-                IList<CustomerSecurities> securities = await (from c in _context.Customers
-                                                                    join p in _context.Portfolios on c.Portfolio.Id equals p.Id
-                                                                    join s in _context.Securities on p.Id equals s.Portfolio.Id
-                                                                    join st in _context.SecurityTypes on s.Type.Id equals st.Id
-                                                                    where c.Id == customerId
-                                                                    select new CustomerSecurities()
-                                                                    {
-                                                                        Symbol = s.Symbol,
-                                                                        Price = s.Price,
-                                                                        Type = st.Type
-                                                                    }).ToListAsync();
-                securities = await CalculateMarketValueAsync(securities);
-                var portfolio = new CustomerPortfolio()
+            
+                try
                 {
-                    CustomerId = customerId,
-                    PortfolioId = _context.Customers.Where(x => x.Id == customerId).Select(x => x.Portfolio.Id).FirstOrDefault(),
-                    CustomerName = _context.Customers.FirstOrDefault(c => c.Id == customerId)?.Name,
-                    CustomerSecurities = securities,
-                    PortfolioValue = securities.Select(x => x.MarketValue).Sum(),
-                    TotalPaidPrice = securities.Select(x => x.Price).Sum()
-                };                
-                return portfolio;
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                _logger.LogError("Couldn't update record, concurrency violation ocurred", ex);
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError("Couldn't update record", ex);
-            }
-            catch (NotSupportedException ex)
-            {
-                _logger.LogError("Validation error occurred", ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogError("Error while processing entities in database", ex);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Generic exception", ex);
-            }
-            finally
-            {
-                _context.Dispose();
-            }
+                    IList<CustomerSecurities> securities = await (from c in _context.Customers
+                        join p in _context.Portfolios on c.Portfolio.Id equals p.Id
+                        join s in _context.Securities on p.Id equals s.Portfolio.Id
+                        join st in _context.SecurityTypes on s.Type.Id equals st.Id
+                        where c.Id == customerId
+                        select new CustomerSecurities()
+                        {
+                            Symbol = s.Symbol,
+                            Price = s.Price,
+                            Type = st.Type
+                        }).ToListAsync();
+                    securities = await CalculateMarketValueAsync(securities);
+                    var portfolio = new CustomerPortfolio()
+                    {
+                        CustomerId = customerId,
+                        PortfolioId =
+                            _context.Customers.Where(x => x.Id == customerId)
+                                .Select(x => x.Portfolio.Id)
+                                .FirstOrDefault(),
+                        CustomerName = _context.Customers.FirstOrDefault(c => c.Id == customerId)?.Name,
+                        CustomerSecurities = securities,
+                        PortfolioValue = securities.Select(x => x.MarketValue).Sum(),
+                        TotalPaidPrice = securities.Select(x => x.Price).Sum()
+                    };
+                    
+                    return portfolio;
+                }                
+                catch (NotSupportedException ex)
+                {
+                    _logger.LogError("Validation error occurred", ex);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    _logger.LogError("Error while processing entities in database", ex);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("Generic exception", ex);
+                }
+                finally
+                {
+
+                    _context.Dispose();
+                }
             return null;
         }
 
         public async Task<bool> AddCustomerSecurityAsync(NewCustomerSecurity customerSecurity)
         {
-            try
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                var portfolio = await
-                    _context.Portfolios.Where(x => x.Id == customerSecurity.PortfolioId).FirstOrDefaultAsync();
-
-                var security = new Security()
+                try
                 {
-                    Type = _context.SecurityTypes.SingleOrDefault(x => x.Type == customerSecurity.Type),
-                    Price = customerSecurity.Price,
-                    Symbol = customerSecurity.Symbol
-                };
+                    var portfolio = await
+                        _context.Portfolios.Where(x => x.Id == customerSecurity.PortfolioId).FirstOrDefaultAsync();
 
-                var customer =
-                    await _context.Customers.Where(x => x.Id == customerSecurity.CustomerId).SingleOrDefaultAsync();
+                    var security = new Security()
+                    {
+                        Type = _context.SecurityTypes.SingleOrDefault(x => x.Type == customerSecurity.Type),
+                        Price = customerSecurity.Price,
+                        Symbol = customerSecurity.Symbol
+                    };
 
-                ICollection<Security> securities = await _context.Securities.Where(x => x.Portfolio.Id == customerSecurity.PortfolioId).ToListAsync();
-                
-                if (!securities.Any())
-                {
-                    portfolio = new Portfolio()
-                    {                        
-                        Securities = new List<Security>()
+                    var customer =
+                        await _context.Customers.Where(x => x.Id == customerSecurity.CustomerId).SingleOrDefaultAsync();
+
+                    ICollection<Security> securities =
+                        await
+                            _context.Securities.Where(x => x.Portfolio.Id == customerSecurity.PortfolioId).ToListAsync();
+
+                    if (!securities.Any())
+                    {
+                        portfolio = new Portfolio()
                         {
-                            security
-                        }
-                    };                    
+                            Securities = new List<Security>()
+                            {
+                                security
+                            }
+                        };
+                    }
+                    else
+                    {
+                        portfolio.Securities.Add(security);
+                    }
+
+                    //If portfolio exists just update it, if not add a new one to customer with securities in it.
+                    if (portfolio.Id <= 0)
+                    {
+                        _context.Entry(portfolio).State = EntityState.Modified;
+                    }
+                    else
+                    {
+                        customer.Portfolio = portfolio;
+                        _context.Entry(customer).State = EntityState.Modified;
+                    }
+
+                    await _context.SaveChangesAsync();
+                    transaction.Commit();
+                    return true;
                 }
-                else
+                catch (DbUpdateConcurrencyException ex)
                 {
-                    portfolio.Securities.Add(security);
+                    transaction.Rollback();
+                    _logger.LogError("Couldn't update record, concurrency violation ocurred", ex);
                 }
-
-                //If portfolio exists just update it, if not add a new one to customer with securities in it.
-                if (portfolio.Id <= 0)
+                catch (DbUpdateException ex)
                 {
-                    _context.Entry(portfolio).State = EntityState.Modified;
+                    transaction.Rollback();
+                    _logger.LogError("Couldn't update record", ex);
                 }
-                else
-                {                    
-                    customer.Portfolio = portfolio;
-                    _context.Entry(customer).State = EntityState.Modified;
+                catch (NotSupportedException ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError("Validation error occurred", ex);
                 }
-
-                await _context.SaveChangesAsync();
-
-                return true;
+                catch (InvalidOperationException ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError("Error while processing entities in database", ex);
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError("Generic exception", ex);
+                }
+                
             }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                _logger.LogError("Couldn't update record, concurrency violation ocurred", ex);
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError("Couldn't update record", ex);
-            }
-            catch (NotSupportedException ex)
-            {
-                _logger.LogError("Validation error occurred", ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogError("Error while processing entities in database", ex);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Generic exception", ex);
-            }
-            finally
-            {
-                _context.Dispose();
-            }
-
             return false;
         }
 
@@ -177,39 +181,45 @@ namespace GuidantFinancial.Services
 
         public async Task<bool> UpdateSecurityType(int id, string calculation)
         {
-            try
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                var securityType = await _context.SecurityTypes.Where(x => (int)x.Type == id).SingleOrDefaultAsync();
-                securityType.Calculation = calculation;
-                _context.Entry(securityType).State = EntityState.Modified;
-                await _context.SaveChangesAsync();
-                return true;
+                try
+                {
+                    var securityType =
+                        await _context.SecurityTypes.Where(x => (int) x.Type == id).SingleOrDefaultAsync();
+                    securityType.Calculation = calculation;
+                    _context.Entry(securityType).State = EntityState.Modified;
+                    await _context.SaveChangesAsync();
+                    transaction.Commit();
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    _logger.LogError("Couldn't update record, concurrency violation ocurred", ex);
+                    transaction.Rollback();
+                }
+                catch (DbUpdateException ex)
+                {
+                    _logger.LogError("Couldn't update record", ex);
+                    transaction.Rollback();
+                }
+                catch (NotSupportedException ex)
+                {
+                    _logger.LogError("Validation error occurred", ex);
+                    transaction.Rollback();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    _logger.LogError("Error while processing entities in database", ex);
+                    transaction.Rollback();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("Generic exception", ex);
+                    transaction.Rollback();
+                }
+                
             }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                _logger.LogError("Couldn't update record, concurrency violation ocurred", ex);
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError("Couldn't update record", ex);
-            }
-            catch (NotSupportedException ex)
-            {
-                _logger.LogError("Validation error occurred", ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogError("Error while processing entities in database", ex);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Generic exception", ex);
-            }
-            finally
-            {
-                _context.Dispose();
-            }
-
             return false;
         }
 
@@ -268,10 +278,7 @@ namespace GuidantFinancial.Services
             {
                 _logger.LogError("Generic exception", ex);
             }
-            finally
-            {
-                _context.Dispose();
-            }
+            
             return null;
         }
 

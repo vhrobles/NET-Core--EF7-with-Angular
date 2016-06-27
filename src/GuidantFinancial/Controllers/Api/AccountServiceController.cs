@@ -46,15 +46,15 @@ namespace GuidantFinancial.Controllers.Api
             var existingCustomer = await _accountRepository.GetCustomerByEmailAsync(customer.Email);            
             if (existingCustomer != null)
             {
-                return Json("The customer " + customer.Email + " is already registered.");
+                return Json(false);
             }
             var newCustomer = new Customer()
             {
                 Name = customer.Email,
                 Email = customer.Email                
             };
-            await _accountRepository.AddCustomerAsync(newCustomer, customer.Password);
-            return Json("Customer " + customer.Email + " added successfully!");
+            var result = await _accountRepository.AddCustomerAsync(newCustomer, customer.Password);
+            return Json(result);
         }
 
         // PUT api/values/5
