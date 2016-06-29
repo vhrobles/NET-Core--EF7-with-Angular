@@ -7,9 +7,9 @@ namespace GuidantFinancial.Entities
         [Required]
         public int Id { get; set; }
         [Required]
-        public SecurityTypes Type { get; set; }   
+        public SecurityTypes Type { get; set; }
         [Required]
-        public string Calculation { get; set; }                     
+        public string Calculation { get; set; }
 
     }    
 }

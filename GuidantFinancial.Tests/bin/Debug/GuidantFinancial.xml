@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>GuidantFinancial</name>
+    </assembly>
+    <members>
+        <member name="T:GuidantFinancial.Services.PortfolioRepository">
+            <summary>
+            Portfolio Repo for DB operations
+            </summary>
+        </member>
+    </members>
+</doc>

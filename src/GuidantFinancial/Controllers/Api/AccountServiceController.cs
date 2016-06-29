@@ -5,7 +5,6 @@ using GuidantFinancial.Entities;
 using GuidantFinancial.Services;
 using GuidantFinancial.ViewModels.Account;
 using Microsoft.AspNet.Authorization;
-using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Mvc;
 
 namespace GuidantFinancial.Controllers.Api
@@ -15,15 +14,12 @@ namespace GuidantFinancial.Controllers.Api
     public class AccountServiceController : Controller
     {
         private readonly IAccountRepository _accountRepository;
-        private readonly UserManager<ApplicationUser> _userManager;
 
         public AccountServiceController(
-            IAccountRepository accountRepository,
-            UserManager<ApplicationUser> userManager
+            IAccountRepository accountRepository
             )
         {
             _accountRepository = accountRepository;
-            _userManager = userManager;
         }
         // GET: api/values
         [HttpGet]

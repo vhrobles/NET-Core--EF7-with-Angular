@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using GuidantFinancial.Entities;
 using GuidantFinancial.Services;
 using Microsoft.AspNet.Authorization;
-using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Mvc;
-using Newtonsoft.Json;
 
 
 namespace GuidantFinancial.Controllers.Api
@@ -14,18 +10,15 @@ namespace GuidantFinancial.Controllers.Api
     [Authorize]
     [Route("api/[controller]")]    
     public class PortfolioServiceController : Controller
-    {
-        private UserManager<ApplicationUser> _userManager;
+    {        
         private readonly IPortfolioRepository _portfolio;
         private readonly IAccountRepository _account;
         
-        public PortfolioServiceController(
-            UserManager<ApplicationUser> userManager,
+        public PortfolioServiceController(            
             IPortfolioRepository portfolio,
             IAccountRepository account
             )
-        {
-            _userManager = userManager;
+        {            
             _portfolio = portfolio;
             _account = account;
         }
